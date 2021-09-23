@@ -2,6 +2,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import os
 from openpyxl import load_workbook
+import _thread
+import tkinter
+from tkinter.messagebox import showinfo
 
 
 # path：报告路径，必须是下一级包含"cts","vts"等文件夹的目录，也即一版软件的报告路径
@@ -87,11 +90,40 @@ def write_xl(all_info, path=""):
     workbook.save(filename=path+r"\汇总.xlsx")
 
 
-all_info = []  # 所有报告的信息字典的列表
-print("--请输入本地报告路径，确保子目录中包含cts，vts等存放报告的文件夹--")
-path = input()
-for i in getreport(path):  # os.getcwd()+r"\CN"
-        infodict = getinfo(i)
-        all_info.append(infodict)
-        print("dict:"+str(infodict))
-write_xl(all_info, path)
+def do_my_print(path):
+    _thread.start_new_thread(real_do, (path,))
+
+
+def real_do(path):
+    label2 = tkinter.Label(main_window, text="执行中...")
+    label2.pack()
+    print("path: "+path)
+    all_info = []  # 所有报告的信息字典的列表
+    # print("--请输入本地报告路径，确保子目录中包含cts，vts等存放报告的文件夹--")
+    # path = input()
+    for i in getreport(path):
+            infodict = getinfo(i)
+            all_info.append(infodict)
+            print("dict:"+str(infodict))
+    write_xl(all_info, path)
+    print("完成！")
+    showinfo(title="完成", message="完成！汇总表格已保存：\n"+path)
+    label2.pack_forget()
+
+
+def init_window():
+    main_window.title("main title")
+    main_window.geometry("300x200")
+    label1 = tkinter.Label(main_window, text="请输入路径：")
+    label1.pack()
+    entry1 = tkinter.Entry(main_window)
+    entry1.pack()
+    button1 = tkinter.Button(main_window, text="开始", command=lambda: do_my_print(entry1.get()))
+    button1.pack()
+
+
+if __name__ == '__main__':
+    main_window = tkinter.Tk()
+    init_window()
+    main_window.mainloop()
+
