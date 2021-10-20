@@ -12,14 +12,11 @@ from tkinter.messagebox import showinfo
 def getreport(path):
     list_dir = os.listdir(path)
     path_report = []
-
     for i in list_dir:
         if i == "cts" or "vts" or "sts" or "gts" or "gsi" or "cts-instant":
             sub_list = os.path.join(path, i)
             try:
                 for j in os.listdir(sub_list):
-                    if j == "test_result_failures_suite.html":
-                        path_report.append(os.path.join(sub_list, j))
                     if j[:3] == "202":
                         sub_list2 = os.path.join(sub_list, j)
                         try:
@@ -33,8 +30,8 @@ def getreport(path):
     return path_report
 
 
-#report:报告文件的路径
-#返回该报告中的一些信息
+# report:报告文件的路径
+# 返回该报告中的一些信息
 def getinfo(report):
     infodict = dict()
     # 设置selenium使用chrome的无头模式
@@ -42,9 +39,7 @@ def getinfo(report):
 
     chrome_options.add_argument('headless')  # 设置option,隐藏浏览器界面
     # 在启动浏览器时加入配置
-    browser = webdriver.Chrome(
-        r'C:\Users\XDH\PycharmProjects\seleniumfirst\venv\Scripts\chromedriver.exe',
-        options=chrome_options)  # 获取chrome浏览器的驱动，并启动Chrome浏览器
+    browser = webdriver.Chrome(r'chromedriver.exe', options=chrome_options)  # 获取chrome浏览器的驱动，并启动Chrome浏览器
     browser.get('file:///' + report)
     # 等待加载，最多等待20秒
     browser.implicitly_wait(20)
@@ -67,6 +62,9 @@ def getinfo(report):
     return infodict
 
 
+# 在表格模板中填充信息
+# all_info：所有报告信息字典的列表
+# path：汇总表格文件的输出目录
 def write_xl(all_info, path=""):
     workbook = load_workbook(filename="case.xlsx")
     sheet1 = workbook["case汇总"]
@@ -83,11 +81,48 @@ def write_xl(all_info, path=""):
         finger_print = info["finger_print"]
 
         case_all_test = int(case_pass) + int(case_fail)
-        row = [plan, build, case_all_test, int(case_pass), int(case_fail), int(modules_done), int(modules_total), finger_print]
-        data.append(row)
+        row = [plan, build, case_all_test, int(case_pass), int(case_fail), int(modules_done), int(modules_total),
+               finger_print]
+        data.append(row)  # 将信息直接附在后面
+        #  2021.10.19 start 自动填充工具信息及模块和case数到模板中的固定位置，同一plan多个报告取total_case数量最多的
+        p = plan.split('/')
+        s = build.split('/')
+        tool = p[0] + s[0]
+        if plan == "CTS / cts" or plan == "CTS / cts-retry":
+            sheet1['B1'] = tool
+            sheet1['C1'] = tool
+            if sheet1["C3"].value is None or int(modules_total) > sheet1["C3"].value:
+                sheet1["C3"] = int(modules_total)
+            if sheet1["C4"].value is None or int(modules_total) > sheet1["C4"].value:
+                sheet1["C4"] = case_all_test
+        if plan == "VTS / cts-on-gsi" or plan == "VTS / cts-on-gsi-retry":
+            sheet1['D1'] = tool
+            if sheet1["D3"].value is None or int(modules_total) > sheet1["D3"].value:
+                sheet1["D3"] = int(modules_total)
+            if sheet1["D4"].value is None or int(modules_total) > sheet1["D4"].value:
+                sheet1["D4"] = case_all_test
+        if plan == "VTS / vts":
+            sheet1['E1'] = tool
+            if sheet1["E3"].value is None or int(modules_total) > sheet1["E3"].value:
+                sheet1["E3"] = int(modules_total)
+            if sheet1["E4"].value is None or int(modules_total) > sheet1["E4"].value:
+                sheet1["E4"] = case_all_test
+        if plan == "GTS / gts":
+            sheet1['F1'] = tool
+            if sheet1["F3"].value is None or int(modules_total) > sheet1["F3"].value:
+                sheet1["F3"] = int(modules_total)
+            if sheet1["F4"].value is None or int(modules_total) > sheet1["F4"].value:
+                sheet1["F4"] = case_all_test
+        if plan == "STS / sts-engbuild":
+            sheet1['G1'] = tool
+            if sheet1["G3"].value is None or int(modules_total) > sheet1["G3"].value:
+                sheet1["G3"] = int(modules_total)
+            if sheet1["G4"].value is None or int(modules_total) > sheet1["G4"].value:
+                sheet1["G4"] = case_all_test
+        #  2021.10.19 end
     for r in data:
         sheet1.append(r)
-    workbook.save(filename=path+r"\汇总.xlsx")
+    workbook.save(filename=path + r"\汇总.xlsx")
 
 
 def do_my_print(path):
@@ -97,17 +132,15 @@ def do_my_print(path):
 def real_do(path):
     label2 = tkinter.Label(main_window, text="执行中...")
     label2.pack()
-    print("path: "+path)
+    print("path: " + path)
     all_info = []  # 所有报告的信息字典的列表
-    # print("--请输入本地报告路径，确保子目录中包含cts，vts等存放报告的文件夹--")
-    # path = input()
     for i in getreport(path):
-            infodict = getinfo(i)
-            all_info.append(infodict)
-            print("dict:"+str(infodict))
+        infodict = getinfo(i)
+        all_info.append(infodict)
+        print("dict:" + str(infodict))
     write_xl(all_info, path)
     print("完成！")
-    showinfo(title="完成", message="完成！汇总表格已保存：\n"+path)
+    showinfo(title="完成", message="完成！汇总表格已保存：\n" + path)
     label2.pack_forget()
 
 
@@ -126,4 +159,3 @@ if __name__ == '__main__':
     main_window = tkinter.Tk()
     init_window()
     main_window.mainloop()
-
