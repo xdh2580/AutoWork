@@ -13,7 +13,7 @@ def getreport(path):
     list_dir = os.listdir(path)
     path_report = []
     for i in list_dir:
-        if i == "cts" or "vts" or "sts" or "gts" or "gsi" or "cts-instant":
+        if i == "cts" or i == "vts" or i == "sts" or i == "gts" or i == "gsi" or i == "cts-instant":
             sub_list = os.path.join(path, i)
             try:
                 for j in os.listdir(sub_list):
@@ -133,15 +133,28 @@ def real_do(path):
     label2 = tkinter.Label(main_window, text="执行中...")
     label2.pack()
     print("path: " + path)
+    list_dir = os.listdir(path)
+    sub = False
+    for i in list_dir:
+        if i == "CN" or i == "EU" or i == "RU" or i == "US":
+            sub = True
+            path_sub = os.path.join(path, i)
+            print("path_sub:" + path_sub)
+            real_real_do(path_sub)
+    if not sub:
+        real_real_do(path)
+    showinfo(title="完成", message="完成！汇总表格已保存：\n" + path)
+    label2.pack_forget()
+
+
+def real_real_do(path):
     all_info = []  # 所有报告的信息字典的列表
     for i in getreport(path):
         infodict = getinfo(i)
         all_info.append(infodict)
         print("dict:" + str(infodict))
     write_xl(all_info, path)
-    print("完成！")
-    showinfo(title="完成", message="完成！汇总表格已保存：\n" + path)
-    label2.pack_forget()
+    print("完成！" + path)
 
 
 def init_window():
