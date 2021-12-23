@@ -58,6 +58,20 @@ def getinfo(report):
     infodict["security_patch"] = li[9].text
     infodict["release_sdk"] = li[10].text
     infodict["ABIs"] = li[11].text
+
+    details = browser.find_elements_by_class_name("testdetails")
+    all_fail = []  # 所有fail项的列表
+    for fail_module in details:
+        module_name = fail_module.find_element_by_class_name("module").text
+        fails = fail_module.find_elements_by_class_name("testname")
+        for fail_ietm in fails:
+            fail = {}  # 每个fail为字典，module：所属模块，name：失败项case名称，detail：报错信息
+            fail["module"] = module_name
+            fail["name"] = fail_ietm.text
+            fail["detail"] = "null for temp"  # 待补充
+            all_fail.append(fail)
+    infodict["fails"] = all_fail
+    # print(all_fail)
     browser.quit()
     return infodict
 
@@ -68,6 +82,7 @@ def getinfo(report):
 def write_xl(all_info, path=""):
     workbook = load_workbook(filename="case.xlsx")
     sheet1 = workbook["case汇总"]
+    sheet2 = workbook["失败项汇总"]
     row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules_done", "modules_total", "finger_print"]
     sheet1.append(row0)
     data = []
@@ -79,6 +94,11 @@ def write_xl(all_info, path=""):
         modules_done = info["modules_done"]
         modules_total = info["modules_total"]
         finger_print = info["finger_print"]
+
+        fails = info["fails"]#info["fails"]是个列表,其中每个fail元素是字典
+        for fail in fails:
+            row_fail = [plan, fail["module"], fail["name"]]  # , fail["detail"]
+            sheet2.append(row_fail)
 
         case_all_test = int(case_pass) + int(case_fail)
         row = [plan, build, case_all_test, int(case_pass), int(case_fail), int(modules_done), int(modules_total),
@@ -158,7 +178,7 @@ def real_real_do(path):
 
 
 def init_window():
-    main_window.title("main title")
+    main_window.title("Auto Check")
     main_window.geometry("300x200")
     label1 = tkinter.Label(main_window, text="请输入路径：")
     label1.pack()
