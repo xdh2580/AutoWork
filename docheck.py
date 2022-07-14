@@ -34,7 +34,6 @@ class AutoWork:
                     print("跳过")
         return path_report
 
-
     # report:报告文件的路径
     # 返回该报告中的一些信息
     def getinfo(self, report):
@@ -80,20 +79,16 @@ class AutoWork:
         browser.quit()
         return infodict
 
-
     # 在表格模板中填充信息
     # all_info：所有报告信息字典的列表
     # path：汇总表格文件的输出目录
     def write_xl(self, all_info, path=""):
-        case_map = {"CTS / cts": ["C1", "C3", "C4", "B1"],
-                    "CTS / cts-retry": ["C1", "C3", "C4", "B1"],
-                    "VTS / cts-on-gsi": ["E1", "E3", "E4"],
-                    "VTS / cts-on-gsi-retry": ["E1", "E3", "E4"],
-                    }
+
         workbook = load_workbook(filename="case.xlsx")
         sheet1 = workbook["case汇总"]
         sheet2 = workbook["失败项汇总"]
-        row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules_done", "modules_total", "finger_print"]
+        row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules_done", "modules_total",
+                "finger_print"]
         sheet1.append(row0)
         data = []
         for info in all_info:
@@ -115,19 +110,6 @@ class AutoWork:
             row = [plan, build, case_all_test, int(case_pass), int(case_fail), int(modules_done), int(modules_total),
                    finger_print]
             data.append(row)  # 将信息直接附在后面
-
-            #  2022.07.06 start fill the report via DL or No-DL template
-            # if self.v.get() == "DL":
-            #     workbook2 = load_workbook(filename="DL_xTS_Test_Report.xlsx")
-            #     sheet_DL_summary = workbook2["Summary"]
-            #     sheet_DL_summary["B2"] = finger_print
-            #     sheet_DL_summary["B3"] = security_patch
-            #
-            # if self.v.get() == "No-DL":
-            #     workbook3 = load_workbook(filename="test_report_template.xlsx")
-            #     sheet_normal_summary = workbook3["Pre-test"]
-            #     sheet_normal_summary["B1"] = finger_print
-
 
             #  2021.10.19 start 自动填充工具信息及模块和case数到模板中的固定位置，同一plan多个报告取total_case数量最多的
             p = plan.split('/')
@@ -166,19 +148,12 @@ class AutoWork:
                     sheet1["G4"] = case_all_test
             #  2021.10.19 end
 
-
         for r in data:
             sheet1.append(r)
         workbook.save(filename=path + r"\汇总.xlsx")
-        # workbook2.save(filename=path + r"\DL_xTS_Test_Report_.xlsx")
-        # workbook3.save(filename=path + r"\test_report_.xlsx")
-
-
-
 
     def do_my_print(self, path):
         _thread.start_new_thread(self.real_do, (path,))
-
 
     def real_do(self, path):
         label2 = tkinter.Label(self.main_window, text="执行中...")
@@ -197,7 +172,6 @@ class AutoWork:
         showinfo(title="完成", message="完成！汇总表格已保存：\n" + path)
         label2.pack_forget()
 
-
     def real_real_do(self, path):
         all_info = []  # 所有报告的信息字典的列表
         for i in self.getreport(path):
@@ -206,7 +180,6 @@ class AutoWork:
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
         print("完成！" + path)
-
 
     def init_window(self):
         self.main_window = tkinter.Tk()
@@ -218,14 +191,6 @@ class AutoWork:
         entry1.pack()
         button1 = tkinter.Button(self.main_window, text="开始", command=lambda: self.do_my_print(entry1.get()))
         button1.pack()
-        self.v = tkinter.StringVar()
-        radioBtnA = tkinter.Radiobutton(self.main_window, text="使用DL报告模板", variable=self.v, value="DL")
-        radioBtnA.pack()
-        radioBtnB = tkinter.Radiobutton(self.main_window, text="使用非DL报告模板", variable=self.v, value="No-DL")
-        radioBtnB.pack()
-        button_test = tkinter.Button(self.main_window, text="测试按钮", command=lambda: print(self.v.get()))
-        button_test.pack()
-
         self.main_window.mainloop()
 
 
