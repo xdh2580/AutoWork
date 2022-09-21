@@ -9,7 +9,7 @@ from tkinter.messagebox import showinfo
 
 class AutoWork:
     entry1 = None
-    v = None
+    ifDL = None
     main_window = None
 
     # path：报告路径，必须是下一级包含"cts","vts"等文件夹的目录，也即一版软件的报告路径
@@ -33,7 +33,6 @@ class AutoWork:
                 except Exception as e:
                     print("跳过")
         return path_report
-
 
     # report:报告文件的路径
     # 返回该报告中的一些信息
@@ -80,21 +79,22 @@ class AutoWork:
         browser.quit()
         return infodict
 
-
     # 在表格模板中填充信息
     # all_info：所有报告信息字典的列表
     # path：汇总表格文件的输出目录
     def write_xl(self, all_info, path=""):
-        case_map = {"CTS / cts": ["C1", "C3", "C4", "B1"],
-                    "CTS / cts-retry": ["C1", "C3", "C4", "B1"],
-                    "VTS / cts-on-gsi": ["E1", "E3", "E4"],
-                    "VTS / cts-on-gsi-retry": ["E1", "E3", "E4"],
-                    }
+        workbook_DL = load_workbook(filename="DL_xTS_Test_Report.xlsx")
+        sheet_DL_Summary = workbook_DL["Summary"]
+        sheet_DL_CTS = workbook_DL["CTS"]
+        sheet_DL_GTS = workbook_DL["GTS"]
+        sheet_DL_VTS = workbook_DL["VTS"]
+        sheet_DL_CTS_ON_GSI = workbook_DL["CTS-ON-GSI"]
+        sheet_DL_STS = workbook_DL["STS"]
+        sheet_DL_CTSV = workbook_DL["CTS_VERIFIER"]
+
         workbook = load_workbook(filename="case.xlsx")
         sheet1 = workbook["case汇总"]
         sheet2 = workbook["失败项汇总"]
-        row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules_done", "modules_total", "finger_print"]
-        sheet1.append(row0)
         data = []
         for info in all_info:
             plan = info["suite_plan"]
@@ -105,29 +105,17 @@ class AutoWork:
             modules_total = info["modules_total"]
             security_patch = info["security_patch"]
             finger_print = info["finger_print"]
-
             fails = info["fails"]  # info["fails"]是个列表,其中每个fail元素是字典
+
+            row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules", "finger_print"]
+            sheet1.append(row0)
+            case_all_test = int(case_pass) + int(case_fail)
+            row = [plan, build, case_all_test, int(case_pass), int(case_fail), modules_done + "/" + modules_total,
+                   finger_print]
+            data.append(row)  # 将信息直接附在后面
             for fail in fails:
                 row_fail = [plan, fail["module"], fail["name"]]  # , fail["detail"]
                 sheet2.append(row_fail)
-
-            case_all_test = int(case_pass) + int(case_fail)
-            row = [plan, build, case_all_test, int(case_pass), int(case_fail), int(modules_done), int(modules_total),
-                   finger_print]
-            data.append(row)  # 将信息直接附在后面
-
-            #  2022.07.06 start fill the report via DL or No-DL template
-            # if self.v.get() == "DL":
-            #     workbook2 = load_workbook(filename="DL_xTS_Test_Report.xlsx")
-            #     sheet_DL_summary = workbook2["Summary"]
-            #     sheet_DL_summary["B2"] = finger_print
-            #     sheet_DL_summary["B3"] = security_patch
-            #
-            # if self.v.get() == "No-DL":
-            #     workbook3 = load_workbook(filename="test_report_template.xlsx")
-            #     sheet_normal_summary = workbook3["Pre-test"]
-            #     sheet_normal_summary["B1"] = finger_print
-
 
             #  2021.10.19 start 自动填充工具信息及模块和case数到模板中的固定位置，同一plan多个报告取total_case数量最多的
             p = plan.split('/')
@@ -140,45 +128,82 @@ class AutoWork:
                     sheet1["C3"] = int(modules_total)
                 if sheet1["C4"].value is None or int(modules_total) > sheet1["C4"].value:
                     sheet1["C4"] = case_all_test
+                if self.ifDL.get() == "DL":
+                    sheet_DL_Summary['B2'] = finger_print
+                    sheet_DL_Summary['B3'] = security_patch
+                    sheet_DL_Summary['C6'] = build
+                    sheet_DL_Summary['C10'] = build
+                    sheet_DL_Summary['D6'] = modules_done + "/" + modules_total
+                    sheet_DL_Summary['F6'] = case_fail
+                    for fail in fails:
+                        row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        sheet_DL_CTS.append(row_fail)
+
             if plan == "VTS / cts-on-gsi" or plan == "VTS / cts-on-gsi-retry":
                 sheet1['D1'] = tool
                 if sheet1["D3"].value is None or int(modules_total) > sheet1["D3"].value:
                     sheet1["D3"] = int(modules_total)
                 if sheet1["D4"].value is None or int(modules_total) > sheet1["D4"].value:
                     sheet1["D4"] = case_all_test
+                if self.ifDL.get() == "DL":
+                    sheet_DL_Summary['C9'] = build
+                    sheet_DL_Summary['D9'] = modules_done + "/" + modules_total
+                    sheet_DL_Summary['F9'] = case_fail
+                    for fail in fails:
+                        row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        sheet_DL_CTS_ON_GSI.append(row_fail)
+
             if plan == "VTS / vts":
                 sheet1['E1'] = tool
                 if sheet1["E3"].value is None or int(modules_total) > sheet1["E3"].value:
                     sheet1["E3"] = int(modules_total)
                 if sheet1["E4"].value is None or int(modules_total) > sheet1["E4"].value:
                     sheet1["E4"] = case_all_test
+                if self.ifDL.get() == "DL":
+                    sheet_DL_Summary['C8'] = build
+                    sheet_DL_Summary['D8'] = modules_done + "/" + modules_total
+                    sheet_DL_Summary['F8'] = case_fail
+                    for fail in fails:
+                        row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        sheet_DL_VTS.append(row_fail)
+
             if plan == "GTS / gts":
                 sheet1['F1'] = tool
                 if sheet1["F3"].value is None or int(modules_total) > sheet1["F3"].value:
                     sheet1["F3"] = int(modules_total)
                 if sheet1["F4"].value is None or int(modules_total) > sheet1["F4"].value:
                     sheet1["F4"] = case_all_test
+                if self.ifDL.get() == "DL":
+                    sheet_DL_Summary['C7'] = build
+                    sheet_DL_Summary['D7'] = modules_done + "/" + modules_total
+                    sheet_DL_Summary['F7'] = case_fail
+                    for fail in fails:
+                        row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        sheet_DL_GTS.append(row_fail)
+
             if plan == "STS / sts-engbuild" or plan == "STS / sts-dynamic-incremental" or plan == "STS / sts-dynamic-full":
                 sheet1['G1'] = tool
                 if sheet1["G3"].value is None or int(modules_total) > sheet1["G3"].value:
                     sheet1["G3"] = int(modules_total)
                 if sheet1["G4"].value is None or int(modules_total) > sheet1["G4"].value:
                     sheet1["G4"] = case_all_test
+                if self.ifDL.get() == "DL":
+                    sheet_DL_Summary['C5'] = build
+                    sheet_DL_Summary['D5'] = modules_done + "/" + modules_total
+                    sheet_DL_Summary['F5'] = case_fail
+                    for fail in fails:
+                        row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        sheet_DL_STS.append(row_fail)
             #  2021.10.19 end
-
 
         for r in data:
             sheet1.append(r)
         workbook.save(filename=path + r"\汇总.xlsx")
-        # workbook2.save(filename=path + r"\DL_xTS_Test_Report_.xlsx")
-        # workbook3.save(filename=path + r"\test_report_.xlsx")
-
-
-
+        if self.ifDL.get() == "DL":
+            workbook_DL.save(filename=path + r"\DL_xTS_Test_Report.xlsx")
 
     def do_my_print(self, path):
         _thread.start_new_thread(self.real_do, (path,))
-
 
     def real_do(self, path):
         label2 = tkinter.Label(self.main_window, text="执行中...")
@@ -197,7 +222,6 @@ class AutoWork:
         showinfo(title="完成", message="完成！汇总表格已保存：\n" + path)
         label2.pack_forget()
 
-
     def real_real_do(self, path):
         all_info = []  # 所有报告的信息字典的列表
         for i in self.getreport(path):
@@ -206,7 +230,6 @@ class AutoWork:
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
         print("完成！" + path)
-
 
     def init_window(self):
         self.main_window = tkinter.Tk()
@@ -218,13 +241,13 @@ class AutoWork:
         entry1.pack()
         button1 = tkinter.Button(self.main_window, text="开始", command=lambda: self.do_my_print(entry1.get()))
         button1.pack()
-        self.v = tkinter.StringVar()
-        radioBtnA = tkinter.Radiobutton(self.main_window, text="使用DL报告模板", variable=self.v, value="DL")
+        self.ifDL = tkinter.StringVar()
+        radioBtnA = tkinter.Radiobutton(self.main_window, text="使用DL报告模板", variable=self.ifDL, value="DL")
         radioBtnA.pack()
-        radioBtnB = tkinter.Radiobutton(self.main_window, text="使用非DL报告模板", variable=self.v, value="No-DL")
+        radioBtnB = tkinter.Radiobutton(self.main_window, text="使用非DL报告模板", variable=self.ifDL, value="No-DL")
         radioBtnB.pack()
-        button_test = tkinter.Button(self.main_window, text="测试按钮", command=lambda: print(self.v.get()))
-        button_test.pack()
+        # button_test = tkinter.Button(self.main_window, text="测试按钮", command=lambda: print(self.ifDL.get()))
+        # button_test.pack()
 
         self.main_window.mainloop()
 
