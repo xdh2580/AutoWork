@@ -95,6 +95,8 @@ class AutoWork:
         workbook = load_workbook(filename="case.xlsx")
         sheet1 = workbook["case汇总"]
         sheet2 = workbook["失败项汇总"]
+        row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules", "finger_print"]
+        sheet1.append(row0)
         data = []
         for info in all_info:
             plan = info["suite_plan"]
@@ -107,8 +109,6 @@ class AutoWork:
             finger_print = info["finger_print"]
             fails = info["fails"]  # info["fails"]是个列表,其中每个fail元素是字典
 
-            row0 = ["plan", "tool", "case_all_test", "case_pass", "case_fail", "modules", "finger_print"]
-            sheet1.append(row0)
             case_all_test = int(case_pass) + int(case_fail)
             row = [plan, build, case_all_test, int(case_pass), int(case_fail), modules_done + "/" + modules_total,
                    finger_print]
