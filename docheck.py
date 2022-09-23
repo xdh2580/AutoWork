@@ -5,6 +5,9 @@ from openpyxl import load_workbook
 import _thread
 import tkinter
 from tkinter.messagebox import showinfo
+from openpyxl.styles import PatternFill
+
+
 
 
 class AutoWork:
@@ -79,6 +82,20 @@ class AutoWork:
         browser.quit()
         return infodict
 
+    def fill_color(self, workbook_DL):
+        for x in ["CTS", "GTS", "CTS-ON-GSI", "VTS", "STS"]:
+            i = 4  # 根据模板，从第四行开始填充失败项的颜色
+            while True:
+                if not workbook_DL[x]["A" + str(i)].value is None:
+                    workbook_DL[x]["A"+str(i)].fill = PatternFill(start_color="ffff00", fill_type="solid")
+                    for j in ["B", "C", "D", "E"]:
+                        workbook_DL[x][j + str(i)].fill = PatternFill(start_color="92d050", fill_type="solid")
+                    i = i + 1
+                else:
+                    break
+            workbook_DL[x].append(["Incomplete Modules"])
+            workbook_DL[x]["A" + str(i+1)].fill = PatternFill(start_color="a5c639", fill_type="solid")
+
     # 在表格模板中填充信息
     # all_info：所有报告信息字典的列表
     # path：汇总表格文件的输出目录
@@ -134,7 +151,7 @@ class AutoWork:
                     sheet_DL_Summary['C6'] = build
                     sheet_DL_Summary['C10'] = build
                     sheet_DL_Summary['D6'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F6'] = case_fail
+                    sheet_DL_Summary['F6'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_CTS.append(row_fail)
@@ -148,7 +165,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C9'] = build
                     sheet_DL_Summary['D9'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F9'] = case_fail
+                    sheet_DL_Summary['F9'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_CTS_ON_GSI.append(row_fail)
@@ -162,7 +179,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C8'] = build
                     sheet_DL_Summary['D8'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F8'] = case_fail
+                    sheet_DL_Summary['F8'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_VTS.append(row_fail)
@@ -176,7 +193,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C7'] = build
                     sheet_DL_Summary['D7'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F7'] = case_fail
+                    sheet_DL_Summary['F7'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_GTS.append(row_fail)
@@ -190,7 +207,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C5'] = build
                     sheet_DL_Summary['D5'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F5'] = case_fail
+                    sheet_DL_Summary['F5'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_STS.append(row_fail)
@@ -200,6 +217,7 @@ class AutoWork:
             sheet1.append(r)
         workbook.save(filename=path + r"\汇总.xlsx")
         if self.ifDL.get() == "DL":
+            self.fill_color(workbook_DL)
             workbook_DL.save(filename=path + r"\DL_xTS_Test_Report.xlsx")
 
     def do_my_print(self, path):
