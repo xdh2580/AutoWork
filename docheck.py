@@ -7,13 +7,21 @@ import tkinter
 from tkinter.messagebox import showinfo
 from openpyxl.styles import PatternFill
 
-
-
+waiverList = {
+    "libcore.java.net.InetAddressTest#test_isReachable_by_ICMP": "ipv6",
+    "libcore.java.net.SocketTest#testSocketTestAllAddresses": "ipv6",
+    "android.net.cts.ConnectivityManagerTest#testOpenConnection": "foreign SIM card",
+    "android.net.cts.MultinetworkApiTest#testNativeDatagramTransmission": "ipv6",
+    "android.net.cts.DnsTest#testDnsWorks": "ipv6",
+    "com.google.android.location.gts.gnss.GnssPseudorangeVerificationTest#testPseudoPosition": "weak GNSS signal indoor",
+    "com.google.android.media.gts.WidevineDashPolicyTests#testL3OfflineCannotPersist": "waiver",
+}
 
 class AutoWork:
     entry1 = None
     ifDL = None
     main_window = None
+
 
     # path：报告路径，必须是下一级包含"cts","vts"等文件夹的目录，也即一版软件的报告路径
     # 返回所有test_resule_failure报告的路径的列表
@@ -88,8 +96,13 @@ class AutoWork:
             while True:
                 if not workbook_DL[x]["A" + str(i)].value is None:
                     workbook_DL[x]["A"+str(i)].fill = PatternFill(start_color="ffff00", fill_type="solid")
-                    for j in ["B", "C", "D", "E"]:
-                        workbook_DL[x][j + str(i)].fill = PatternFill(start_color="92d050", fill_type="solid")
+                    if workbook_DL[x]["B" + str(i)].value in waiverList.keys():
+                        workbook_DL[x]["E" + str(i)] = waiverList[workbook_DL[x]["B" + str(i)].value]
+                        for j in ["B", "C", "D", "E"]:
+                            workbook_DL[x][j + str(i)].fill = PatternFill(start_color="92d050", fill_type="solid")
+                    else:
+                        for j in ["B", "C", "D", "E"]:
+                            workbook_DL[x][j + str(i)].fill = PatternFill(start_color="ff0000", fill_type="solid")
                     i = i + 1
                 else:
                     break
