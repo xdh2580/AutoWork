@@ -243,7 +243,7 @@ class AutoWork:
         list_dir = os.listdir(path)
         sub = False
         for i in list_dir:
-            if i == "CN" or i == "EU" or i == "RU" or i == "US":
+            if i == "CN" or i == "EU" or i == "RU" or i == "US" or i == "WWAN" or i == "WLAN":
                 sub = True
                 path_sub = os.path.join(path, i)
                 print("path_sub:" + path_sub)
