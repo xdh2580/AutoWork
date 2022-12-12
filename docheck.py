@@ -4,6 +4,7 @@ import os
 from openpyxl import load_workbook
 import _thread
 import tkinter
+from webdriver_manager.chrome import ChromeDriverManager
 from tkinter.messagebox import showinfo
 from openpyxl.styles import PatternFill
 
@@ -17,97 +18,105 @@ waiverList = {
     "com.google.android.media.gts.WidevineDashPolicyTests#testL3OfflineCannotPersist": "waiver",
 }
 
+
+def get_report(path):
+    list_dir = os.listdir(path)
+    path_report = []
+    for i in list_dir:
+        if i == "cts" or i == "vts" or i == "sts" or i == "gts" or i == "gsi" or i == "cts-instant":
+            sub_list = os.path.join(path, i)
+            try:
+                for j in os.listdir(sub_list):
+                    if j[:3] == "202":
+                        sub_list2 = os.path.join(sub_list, j)
+                        try:
+                            for q in os.listdir(sub_list2):
+                                if q == "test_result_failures_suite.html" or q == "test_result_failures.html":
+                                    path_report.append(os.path.join(sub_list2, q))
+                        except Exception as e:
+                            print("非目录，跳过")
+            except Exception as e:
+                print("跳过")
+    return path_report
+
+
+def fill_color(workbook_DL):
+    for x in ["CTS", "GTS", "CTS-ON-GSI", "VTS", "STS"]:
+        i = 4  # 根据模板，从第四行开始填充失败项的颜色
+        while True:
+            if not workbook_DL[x]["A" + str(i)].value is None:
+                workbook_DL[x]["A" + str(i)].fill = PatternFill(start_color="ffff00", fill_type="solid")
+                if workbook_DL[x]["B" + str(i)].value in waiverList.keys():
+                    workbook_DL[x]["E" + str(i)] = waiverList[workbook_DL[x]["B" + str(i)].value]
+                    for j in ["B", "C", "D", "E"]:
+                        workbook_DL[x][j + str(i)].fill = PatternFill(start_color="92d050", fill_type="solid")
+                else:
+                    for j in ["B", "C", "D", "E"]:
+                        workbook_DL[x][j + str(i)].fill = PatternFill(start_color="ff0000", fill_type="solid")
+                i = i + 1
+            else:
+                break
+        workbook_DL[x].append(["Incomplete Modules"])
+        workbook_DL[x]["A" + str(i + 1)].fill = PatternFill(start_color="a5c639", fill_type="solid")
+
+
+def getinfo(report):
+    infodict = dict()
+    # 设置selenium使用chrome的无头模式
+    chrome_options = Options()
+
+    chrome_options.add_argument('headless')  # 设置option,隐藏浏览器界面
+    # 在启动浏览器时加入配置
+    try:
+        driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)  # 自动获取chrome浏览器的驱动
+    except Exception as e:
+        print(e)
+        if str(e).startswith("HTTPSConnectionPool"):
+            print("获取浏览器驱动失败，请连接网络后重试!")
+    driver.get('file:///' + report)
+    # 等待加载，最多等待20秒
+    driver.implicitly_wait(20)
+    # browser.maximize_window()  # 窗口最大化
+
+    li = driver.find_elements_by_xpath("//td[@class='rowtitle']/../td[2]")
+    infodict["suite_plan"] = li[0].text
+    infodict["suite_build"] = li[1].text
+    infodict["host_info"] = li[2].text
+    infodict["time_info"] = li[3].text
+    infodict["case_pass"] = li[4].text
+    infodict["case_fail"] = li[5].text
+    infodict["modules_done"] = li[6].text
+    infodict["modules_total"] = li[7].text
+    infodict["finger_print"] = li[8].text
+    infodict["security_patch"] = li[9].text
+    infodict["release_sdk"] = li[10].text
+    infodict["ABIs"] = li[11].text
+
+    details = driver.find_elements_by_class_name("testdetails")
+    all_fail = []  # 所有fail项的列表
+    for fail_module in details:
+        module_name = fail_module.find_element_by_class_name("module").text
+        fails = fail_module.find_elements_by_class_name("testname")
+        for fail_item in fails:
+            fail = {"module": module_name, "name": fail_item.text,
+                    "detail": "null for temp"}  # 每个fail为字典，module：所属模块，name：失败项case名称，detail：报错信息
+            all_fail.append(fail)
+    infodict["fails"] = all_fail
+    # print(all_fail)
+    driver.quit()
+    return infodict
+
+
 class AutoWork:
     entry1 = None
     ifDL = None
     main_window = None
 
-
     # path：报告路径，必须是下一级包含"cts","vts"等文件夹的目录，也即一版软件的报告路径
-    # 返回所有test_resule_failure报告的路径的列表
-    def getreport(self, path):
-        list_dir = os.listdir(path)
-        path_report = []
-        for i in list_dir:
-            if i == "cts" or i == "vts" or i == "sts" or i == "gts" or i == "gsi" or i == "cts-instant":
-                sub_list = os.path.join(path, i)
-                try:
-                    for j in os.listdir(sub_list):
-                        if j[:3] == "202":
-                            sub_list2 = os.path.join(sub_list, j)
-                            try:
-                                for q in os.listdir(sub_list2):
-                                    if q == "test_result_failures_suite.html" or q == "test_result_failures.html":
-                                        path_report.append(os.path.join(sub_list2, q))
-                            except Exception as e:
-                                print("非目录，跳过")
-                except Exception as e:
-                    print("跳过")
-        return path_report
+    # 返回所有test_result_failure报告的路径的列表
 
     # report:报告文件的路径
     # 返回该报告中的一些信息
-    def getinfo(self, report):
-        infodict = dict()
-        # 设置selenium使用chrome的无头模式
-        chrome_options = Options()
-
-        chrome_options.add_argument('headless')  # 设置option,隐藏浏览器界面
-        # 在启动浏览器时加入配置
-        browser = webdriver.Chrome(r'chromedriver.exe', options=chrome_options)  # 获取chrome浏览器的驱动，并启动Chrome浏览器
-        browser.get('file:///' + report)
-        # 等待加载，最多等待20秒
-        browser.implicitly_wait(20)
-        # browser.maximize_window()  # 窗口最大化
-
-        li = browser.find_elements_by_xpath("//td[@class='rowtitle']/../td[2]")
-        infodict["suite_plan"] = li[0].text
-        infodict["suite_build"] = li[1].text
-        infodict["host_info"] = li[2].text
-        infodict["time_info"] = li[3].text
-        infodict["case_pass"] = li[4].text
-        infodict["case_fail"] = li[5].text
-        infodict["modules_done"] = li[6].text
-        infodict["modules_total"] = li[7].text
-        infodict["finger_print"] = li[8].text
-        infodict["security_patch"] = li[9].text
-        infodict["release_sdk"] = li[10].text
-        infodict["ABIs"] = li[11].text
-
-        details = browser.find_elements_by_class_name("testdetails")
-        all_fail = []  # 所有fail项的列表
-        for fail_module in details:
-            module_name = fail_module.find_element_by_class_name("module").text
-            fails = fail_module.find_elements_by_class_name("testname")
-            for fail_ietm in fails:
-                fail = {}  # 每个fail为字典，module：所属模块，name：失败项case名称，detail：报错信息
-                fail["module"] = module_name
-                fail["name"] = fail_ietm.text
-                fail["detail"] = "null for temp"  # 待补充
-                all_fail.append(fail)
-        infodict["fails"] = all_fail
-        # print(all_fail)
-        browser.quit()
-        return infodict
-
-    def fill_color(self, workbook_DL):
-        for x in ["CTS", "GTS", "CTS-ON-GSI", "VTS", "STS"]:
-            i = 4  # 根据模板，从第四行开始填充失败项的颜色
-            while True:
-                if not workbook_DL[x]["A" + str(i)].value is None:
-                    workbook_DL[x]["A"+str(i)].fill = PatternFill(start_color="ffff00", fill_type="solid")
-                    if workbook_DL[x]["B" + str(i)].value in waiverList.keys():
-                        workbook_DL[x]["E" + str(i)] = waiverList[workbook_DL[x]["B" + str(i)].value]
-                        for j in ["B", "C", "D", "E"]:
-                            workbook_DL[x][j + str(i)].fill = PatternFill(start_color="92d050", fill_type="solid")
-                    else:
-                        for j in ["B", "C", "D", "E"]:
-                            workbook_DL[x][j + str(i)].fill = PatternFill(start_color="ff0000", fill_type="solid")
-                    i = i + 1
-                else:
-                    break
-            workbook_DL[x].append(["Incomplete Modules"])
-            workbook_DL[x]["A" + str(i+1)].fill = PatternFill(start_color="a5c639", fill_type="solid")
 
     # 在表格模板中填充信息
     # all_info：所有报告信息字典的列表
@@ -211,7 +220,8 @@ class AutoWork:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_GTS.append(row_fail)
 
-            if plan == "STS / sts-engbuild" or plan == "STS / sts-dynamic-incremental" or plan == "STS / sts-dynamic-full":
+            if plan == "STS / sts-engbuild" or plan == "STS / sts-dynamic-incremental" or\
+                    plan == "STS / sts-dynamic-full":
                 sheet1['G1'] = tool
                 if sheet1["G3"].value is None or int(modules_total) > sheet1["G3"].value:
                     sheet1["G3"] = int(modules_total)
@@ -230,7 +240,7 @@ class AutoWork:
             sheet1.append(r)
         workbook.save(filename=path + r"\汇总.xlsx")
         if self.ifDL.get() == "DL":
-            self.fill_color(workbook_DL)
+            fill_color(workbook_DL)
             workbook_DL.save(filename=path + r"\DL_xTS_Test_Report.xlsx")
 
     def do_my_print(self, path):
@@ -255,8 +265,8 @@ class AutoWork:
 
     def real_real_do(self, path):
         all_info = []  # 所有报告的信息字典的列表
-        for i in self.getreport(path):
-            infodict = self.getinfo(i)
+        for i in get_report(path):
+            infodict = getinfo(i)
             all_info.append(infodict)
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
