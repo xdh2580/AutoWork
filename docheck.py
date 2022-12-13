@@ -9,6 +9,7 @@ from tkinter.messagebox import showinfo
 from openpyxl.styles import PatternFill
 
 waiverList = {
+    "libcore.java.net.InetAddressTest#test_getByName_invalid[1]": "ipv6",
     "libcore.java.net.InetAddressTest#test_isReachable_by_ICMP": "ipv6",
     "libcore.java.net.SocketTest#testSocketTestAllAddresses": "ipv6",
     "android.net.cts.ConnectivityManagerTest#testOpenConnection": "foreign SIM card",
@@ -19,6 +20,8 @@ waiverList = {
 }
 
 
+# path：报告路径，必须是下一级包含"cts","vts"等文件夹的目录，也即一版软件的报告路径
+# 返回所有test_result_failure报告的路径的列表
 def get_report(path):
     list_dir = os.listdir(path)
     path_report = []
@@ -58,6 +61,9 @@ def fill_color(workbook_DL):
                 break
         workbook_DL[x].append(["Incomplete Modules"])
         workbook_DL[x]["A" + str(i + 1)].fill = PatternFill(start_color="a5c639", fill_type="solid")
+
+    # report:报告文件的路径
+    # 返回该报告中的一些信息
 
 
 def getinfo(report):
@@ -111,12 +117,6 @@ class AutoWork:
     entry1 = None
     ifDL = None
     main_window = None
-
-    # path：报告路径，必须是下一级包含"cts","vts"等文件夹的目录，也即一版软件的报告路径
-    # 返回所有test_result_failure报告的路径的列表
-
-    # report:报告文件的路径
-    # 返回该报告中的一些信息
 
     # 在表格模板中填充信息
     # all_info：所有报告信息字典的列表
@@ -220,7 +220,7 @@ class AutoWork:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_GTS.append(row_fail)
 
-            if plan == "STS / sts-engbuild" or plan == "STS / sts-dynamic-incremental" or\
+            if plan == "STS / sts-engbuild" or plan == "STS / sts-dynamic-incremental" or \
                     plan == "STS / sts-dynamic-full":
                 sheet1['G1'] = tool
                 if sheet1["G3"].value is None or int(modules_total) > sheet1["G3"].value:
@@ -282,11 +282,12 @@ class AutoWork:
         entry1.pack()
         button1 = tkinter.Button(self.main_window, text="开始", command=lambda: self.do_my_print(entry1.get()))
         button1.pack()
-        self.ifDL = tkinter.StringVar()
+        self.ifDL = tkinter.StringVar(value="DL")
         radioBtnA = tkinter.Radiobutton(self.main_window, text="使用DL报告模板", variable=self.ifDL, value="DL")
         radioBtnA.pack()
-        radioBtnB = tkinter.Radiobutton(self.main_window, text="使用非DL报告模板", variable=self.ifDL, value="No-DL")
-        radioBtnB.pack()
+        # radioBtnB = tkinter.Radiobutton(self.main_window, text="使用非DL报告模板", variable=self.ifDL, value="No-DL")
+        # radioBtnB.pack()
+
         # button_test = tkinter.Button(self.main_window, text="测试按钮", command=lambda: print(self.ifDL.get()))
         # button_test.pack()
 
