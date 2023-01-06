@@ -163,6 +163,7 @@ class AutoWork:
             if plan == "CTS / cts" or plan == "CTS / cts-retry":
                 sheet1['B1'] = tool
                 sheet1['C1'] = tool
+                sheet1['D1'] = tool
                 if sheet1["C3"].value is None or int(modules_total) > sheet1["C3"].value:
                     sheet1["C3"] = int(modules_total)
                 if sheet1["C4"].value is None or int(modules_total) > sheet1["C4"].value:
@@ -179,7 +180,7 @@ class AutoWork:
                         sheet_DL_CTS.append(row_fail)
 
             if plan == "VTS / cts-on-gsi" or plan == "VTS / cts-on-gsi-retry":
-                sheet1['D1'] = tool
+                # sheet1['D1'] = tool
                 if sheet1["D3"].value is None or int(modules_total) > sheet1["D3"].value:
                     sheet1["D3"] = int(modules_total)
                 if sheet1["D4"].value is None or int(modules_total) > sheet1["D4"].value:
