@@ -16,7 +16,9 @@ waiverList = {
     "android.net.cts.MultinetworkApiTest#testNativeDatagramTransmission": "ipv6",
     "android.net.cts.DnsTest#testDnsWorks": "ipv6",
     "com.google.android.location.gts.gnss.GnssPseudorangeVerificationTest#testPseudoPosition": "weak GNSS signal indoor",
+    "com.google.android.location.gts.gnss.GnssPseudorangeVerificationTest#testPseudorangeValue": "weak GNSS signal indoor",
     "android.location.cts.GnssPseudorangeVerificationTest#testPseudoPosition": "weak GNSS signal indoor",
+    "android.location.cts.GnssPseudorangeVerificationTest#testPseudorangeValue": "weak GNSS signal indoor",
     "com.google.android.media.gts.WidevineDashPolicyTests#testL3OfflineCannotPersist": "waiver",
 }
 
