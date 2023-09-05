@@ -1,3 +1,5 @@
+import json
+import shutil
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import os
@@ -5,6 +7,8 @@ from openpyxl import load_workbook
 import _thread
 import tkinter
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from webdriver_manager.core.os_manager import OperationSystemManager
 from tkinter.messagebox import showinfo
 from openpyxl.styles import PatternFill
 
@@ -19,6 +23,7 @@ waiverList = {
     "com.google.android.location.gts.gnss.GnssPseudorangeVerificationTest#testPseudorangeValue": "weak GNSS signal indoor",
     "android.location.cts.GnssPseudorangeVerificationTest#testPseudoPosition": "weak GNSS signal indoor",
     "android.location.cts.GnssPseudorangeVerificationTest#testPseudorangeValue": "weak GNSS signal indoor",
+    "android.location.cts.gnss.GnssPseudorangeVerificationTest#testPseudoPosition": "weak GNSS signal indoor",
     "com.google.android.media.gts.WidevineDashPolicyTests#testL3OfflineCannotPersist": "waiver",
 }
 
@@ -69,15 +74,57 @@ def fill_color(workbook_DL):
     # 返回该报告中的一些信息
 
 
-def getinfo(report):
+def getinfo(report, browser):
+    # print("broser you choose:" + browser.get())
     infodict = dict()
-    # 设置selenium使用chrome的无头模式
-    chrome_options = Options()
+    driver = None
+    operationSystemManager = OperationSystemManager()
+    with open("webview_version.json", "r") as f:
+        f_j = json.load(f)
+        web_version_edge_json = f_j["edge_version"]
+        # print(f"web_version_edge:{web_version_edge_json}")
+        web_version_chrome_json = f_j["chrome_version"]
+        # print(f"web_version_chrome:{web_version_chrome_json}")
 
-    chrome_options.add_argument('headless')  # 设置option,隐藏浏览器界面
-    # 在启动浏览器时加入配置
     try:
-        driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)  # 自动获取chrome浏览器的驱动
+        if browser.get() == "chrome":
+            chrome_version = operationSystemManager.get_browser_version_from_os("google-chrome")
+            print("local chrome version" + chrome_version)
+            # 设置selenium使用chrome的无头模式
+            chrome_options = Options()
+            chrome_options.add_argument('headless')  # 设置option,隐藏浏览器界面
+            if web_version_chrome_json == chrome_version and "chromedriver.exe" in os.listdir(os.getcwd()):
+                driver = webdriver.Chrome(f"{os.getcwd()}/chromedriver.exe", options=chrome_options)
+            else:
+                # 在启动浏览器时加入配置
+                driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)  # 自动获取chrome浏览器的驱动
+                shutil.copy(ChromeDriverManager().install(), os.getcwd())
+                with open("webview_version.json", "w") as f:
+                    f_j["chrome_version"] = chrome_version
+                    # json.dump(f_j, f)
+                    f.write(json.dumps(f_j))
+        elif browser.get() == "edge":
+            edge_version = operationSystemManager.get_browser_version_from_os("edge")
+            print(edge_version)
+            options = {
+                # "browserName": "MicrosoftEdge",
+                # "version": "",
+                # "platform": "WINDOWS",
+                "ms:edgeOptions": {
+                    "extensions": [], "args": ["--headless"]  # 添加隐藏浏览器页面运作参数
+                }
+            }
+
+            if web_version_edge_json == edge_version and "msedgedriver.exe" in os.listdir(os.getcwd()):
+                driver = webdriver.Edge(f"{os.getcwd()}/msedgedriver.exe", capabilities=options)
+            else:
+                driver = webdriver.Edge(EdgeChromiumDriverManager().install(), capabilities=options)  # 自动获取edge浏览器的驱动
+                shutil.copy(EdgeChromiumDriverManager().install(), os.getcwd())
+                with open("webview_version.json", "w") as f:
+                    f_j["edge_version"] = edge_version
+                    json.dump(f_j, f)
+                    # f.write(json.dumps(f_j))
+
     except Exception as e:
         print(e)
         if str(e).startswith("HTTPSConnectionPool"):
@@ -120,6 +167,7 @@ class AutoWork:
     entry1 = None
     ifDL = None
     main_window = None
+    browser_choose = None
 
     # 在表格模板中填充信息
     # all_info：所有报告信息字典的列表
@@ -159,7 +207,7 @@ class AutoWork:
                 row_fail = [plan, fail["module"], fail["name"]]  # , fail["detail"]
                 sheet2.append(row_fail)
 
-            #  2021.10.19 start 自动填充工具信息及模块和case数到模板中的固定位置，同一plan多个报告取total_case数量最多的
+            # 自动填充工具信息及模块和case数到模板中的固定位置，同一plan多个报告取total_case数量最多的
             p = plan.split('/')
             s = build.split('/')
             tool = p[0] + s[0]
@@ -238,7 +286,6 @@ class AutoWork:
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_STS.append(row_fail)
-            #  2021.10.19 end
 
         for r in data:
             sheet1.append(r)
@@ -270,7 +317,7 @@ class AutoWork:
     def real_real_do(self, path):
         all_info = []  # 所有报告的信息字典的列表
         for i in get_report(path):
-            infodict = getinfo(i)
+            infodict = getinfo(i, self.browser_choose)
             all_info.append(infodict)
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
@@ -284,6 +331,13 @@ class AutoWork:
         label1.pack()
         entry1 = tkinter.Entry(self.main_window)
         entry1.pack()
+        self.browser_choose = tkinter.StringVar(value="edge")
+        radioBtn_browser_edge = tkinter.Radiobutton(self.main_window, text="Microsoft Edge",
+                                                    variable=self.browser_choose, value="edge")
+        radioBtn_browser_chrome = tkinter.Radiobutton(self.main_window, text="Chrome", variable=self.browser_choose,
+                                                      value="chrome")
+        radioBtn_browser_chrome.pack()
+        radioBtn_browser_edge.pack()
         button1 = tkinter.Button(self.main_window, text="开始", command=lambda: self.do_my_print(entry1.get()))
         button1.pack()
         self.ifDL = tkinter.StringVar(value="DL")
