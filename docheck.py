@@ -11,6 +11,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from webdriver_manager.core.os_manager import OperationSystemManager
 from tkinter.messagebox import showinfo
 from openpyxl.styles import PatternFill
+import oprate_redmine
 
 waiverList = {
     "libcore.java.net.InetAddressTest#test_getByName_invalid[1]": "ipv6",
@@ -321,6 +322,7 @@ class AutoWork:
             all_info.append(infodict)
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
+        oprate_redmine.new_all_bugs(all_info)
         print("完成！" + path)
 
     def init_window(self):
