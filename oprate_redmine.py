@@ -1,7 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.support.select import Select
 
-driver = webdriver.Edge(executable_path='msedgedriver.exe')
 
 
 redmine_adress = "192.168.3.78:8078"
@@ -14,16 +13,17 @@ DEFAULT_NOTES = ""
 DEFAULT_ASSIGN_TO = "<< 我 >>"
 DEFAULT_ANDROID_VERSION = "Android13"
 
-driver.maximize_window()
-driver.get("http://" + redmine_adress + "/login")
-driver.find_element_by_id("username").send_keys(username)
-driver.find_element_by_id("password").send_keys(password)
-driver.find_element_by_id("login-submit").click()
-# driver.get("http://192.168.3.78:8078/login")
+def init(driver):
+    driver.maximize_window()
+    driver.get("http://" + redmine_adress + "/login")
+    driver.find_element_by_id("username").send_keys(username)
+    driver.find_element_by_id("password").send_keys(password)
+    driver.find_element_by_id("login-submit").click()
+    # driver.get("http://192.168.3.78:8078/login")
 
 
 
-def fill_content(xTS:str, module:str, num:str, case:str, tool:str):
+def fill_content(driver,xTS:str, module:str, num:str, case:str, tool:str):
     isuue_subject = driver.find_element_by_id("issue_subject")  # 标题
     isuue_subject.send_keys(f"[BUG][{xTS}]{module}模块存在{num}条失败项")
     issue_description = driver.find_element_by_id("issue_description")  # 描述
@@ -52,8 +52,8 @@ def fill_content(xTS:str, module:str, num:str, case:str, tool:str):
     issue_custom_field_values_18.send_keys("1000")
 
 #all_info:所有报告信息字典组成的列表
-def new_all_bugs(all_info):
-
+def new_all_bugs(all_info, driver):
+    init(driver)
     current_window = 0
     for info in all_info:
         plan = info["suite_plan"].split(" / ")[0]
@@ -84,5 +84,5 @@ def new_all_bugs(all_info):
             cases = ""
             for case in fails_order_by_module[key]:
                 cases = cases+"\n"+case
-            fill_content(plan, key, num, cases, tool)
+            fill_content(driver, plan, key, str(num), cases, tool)
 

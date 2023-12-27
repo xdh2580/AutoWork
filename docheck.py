@@ -167,6 +167,7 @@ def getinfo(report, browser):
 class AutoWork:
     entry1 = None
     ifDL = None
+    ifRedmine = None
     main_window = None
     browser_choose = None
 
@@ -322,7 +323,8 @@ class AutoWork:
             all_info.append(infodict)
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
-        oprate_redmine.new_all_bugs(all_info)
+        if self.ifRedmine.get() == "Y":
+            oprate_redmine.new_all_bugs(all_info, webdriver.Edge(executable_path='msedgedriver.exe'))
         print("完成！" + path)
 
     def init_window(self):
@@ -345,8 +347,10 @@ class AutoWork:
         self.ifDL = tkinter.StringVar(value="DL")
         radioBtnA = tkinter.Radiobutton(self.main_window, text="使用DL报告模板", variable=self.ifDL, value="DL")
         radioBtnA.pack()
-        # radioBtnB = tkinter.Radiobutton(self.main_window, text="使用非DL报告模板", variable=self.ifDL, value="No-DL")
-        # radioBtnB.pack()
+        self.ifRedmine = tkinter.StringVar(value="N")
+        checkButton1 = tkinter.Checkbutton(self.main_window, text="创建Redmine issue", variable=self.ifRedmine,
+                                           onvalue="Y", offvalue="N")
+        checkButton1.pack()
 
         # button_test = tkinter.Button(self.main_window, text="测试按钮", command=lambda: print(self.ifDL.get()))
         # button_test.pack()
