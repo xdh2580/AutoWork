@@ -6,6 +6,8 @@ import os
 from openpyxl import load_workbook
 import _thread
 import tkinter
+
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from webdriver_manager.core.os_manager import OperationSystemManager
@@ -83,9 +85,9 @@ def getinfo(report, browser):
     with open("webview_version.json", "r") as f:
         f_j = json.load(f)
         web_version_edge_json = f_j["edge_version"]
-        # print(f"web_version_edge:{web_version_edge_json}")
+        print(f"web_version_edge:{web_version_edge_json}")
         web_version_chrome_json = f_j["chrome_version"]
-        # print(f"web_version_chrome:{web_version_chrome_json}")
+        print(f"web_version_chrome:{web_version_chrome_json}")
 
     try:
         if browser.get() == "chrome":
@@ -106,20 +108,24 @@ def getinfo(report, browser):
                     f.write(json.dumps(f_j))
         elif browser.get() == "edge":
             edge_version = operationSystemManager.get_browser_version_from_os("edge")
-            print(edge_version)
+            print("local edge version:"+edge_version)
             options = {
-                # "browserName": "MicrosoftEdge",
-                # "version": "",
-                # "platform": "WINDOWS",
+                "browserName": "MicrosoftEdge",
+                "version": "",
+                "platform": "WINDOWS",
                 "ms:edgeOptions": {
                     "extensions": [], "args": ["--headless"]  # 添加隐藏浏览器页面运作参数
                 }
             }
 
             if web_version_edge_json == edge_version and "msedgedriver.exe" in os.listdir(os.getcwd()):
-                driver = webdriver.Edge(f"{os.getcwd()}/msedgedriver.exe", capabilities=options)
+                print("the same!")
+                driver = webdriver.Edge()#f"{os.getcwd()}/msedgedriver.exe"
             else:
-                driver = webdriver.Edge(EdgeChromiumDriverManager().install(), capabilities=options)  # 自动获取edge浏览器的驱动
+                try:
+                    driver = webdriver.Edge(EdgeChromiumDriverManager().install())  # 自动获取edge浏览器的驱动
+                except Exception as e:
+                    print(e)
                 shutil.copy(EdgeChromiumDriverManager().install(), os.getcwd())
                 with open("webview_version.json", "w") as f:
                     f_j["edge_version"] = edge_version
@@ -135,7 +141,7 @@ def getinfo(report, browser):
     driver.implicitly_wait(20)
     # browser.maximize_window()  # 窗口最大化
 
-    li = driver.find_elements_by_xpath("//td[@class='rowtitle']/../td[2]")
+    li = driver.find_elements(By.XPATH, "//td[@class='rowtitle']/../td[2]")
     infodict["suite_plan"] = li[0].text
     infodict["suite_build"] = li[1].text
     infodict["host_info"] = li[2].text
@@ -149,11 +155,11 @@ def getinfo(report, browser):
     infodict["release_sdk"] = li[10].text
     infodict["ABIs"] = li[11].text
 
-    details = driver.find_elements_by_class_name("testdetails")
+    details = driver.find_elements(By.CLASS_NAME, value="testdetails")
     all_fail = []  # 所有fail项的列表
     for fail_module in details:
-        module_name = fail_module.find_element_by_class_name("module").text
-        fails = fail_module.find_elements_by_class_name("testname")
+        module_name = fail_module.find_element(By.CLASS_NAME, value="module").text
+        fails = fail_module.find_elements(By.CLASS_NAME, value="testname")
         for fail_item in fails:
             fail = {"module": module_name, "name": fail_item.text,
                     "detail": "null for temp"}  # 每个fail为字典，module：所属模块，name：失败项case名称，detail：报错信息
@@ -227,7 +233,7 @@ class AutoWork:
                     sheet_DL_Summary['C6'] = build
                     sheet_DL_Summary['C10'] = build
                     sheet_DL_Summary['D6'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F6'] = int(case_fail)
+                    sheet_DL_Summary['E6'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_CTS.append(row_fail)
@@ -241,7 +247,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C9'] = build
                     sheet_DL_Summary['D9'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F9'] = int(case_fail)
+                    sheet_DL_Summary['E9'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_CTS_ON_GSI.append(row_fail)
@@ -255,9 +261,10 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C8'] = build
                     sheet_DL_Summary['D8'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F8'] = int(case_fail)
+                    sheet_DL_Summary['E8'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        print(row_fail)
                         sheet_DL_VTS.append(row_fail)
 
             if plan == "GTS / gts":
@@ -269,7 +276,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C7'] = build
                     sheet_DL_Summary['D7'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F7'] = int(case_fail)
+                    sheet_DL_Summary['E7'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_GTS.append(row_fail)
@@ -284,7 +291,7 @@ class AutoWork:
                 if self.ifDL.get() == "DL":
                     sheet_DL_Summary['C5'] = build
                     sheet_DL_Summary['D5'] = modules_done + "/" + modules_total
-                    sheet_DL_Summary['F5'] = int(case_fail)
+                    sheet_DL_Summary['E5'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_STS.append(row_fail)
@@ -294,7 +301,7 @@ class AutoWork:
         workbook.save(filename=path + r"\汇总.xlsx")
         if self.ifDL.get() == "DL":
             fill_color(workbook_DL)
-            workbook_DL.save(filename=path + r"\DL_xTS_Test_Report.xlsx")
+            workbook_DL.save(filename=path + r"\XXX_Project_Test_Report.xlsx")
 
     def do_my_print(self, path):
         _thread.start_new_thread(self.real_do, (path,))

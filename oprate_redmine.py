@@ -4,13 +4,13 @@ from selenium.webdriver.support.select import Select
 
 
 redmine_adress = "192.168.3.78:8078"
-username = "xiedenghong"
-password = "password"
-project = "xqt518-dl36_a13"
+username = ""
+password = ""
+project = "sk669_gh6691_version-2-4g_hmd"
 
-DEFAULT_SOFTWARE_VERSION = ""
-DEFAULT_NOTES = ""
-DEFAULT_ASSIGN_TO = "<< 我 >>"
+DEFAULT_SOFTWARE_VERSION = r"\\192.168.4.3\Software\A75\GMS\ums9230_1h10_SK669-GH6691-T-20240113V1_2_userdebug_GMS"
+DEFAULT_NOTES = "单测报告及log在附件"
+DEFAULT_ASSIGN_TO = ""
 DEFAULT_ANDROID_VERSION = "Android13"
 
 def init(driver):
@@ -25,7 +25,7 @@ def init(driver):
 
 def fill_content(driver,xTS:str, module:str, num:str, case:str, tool:str):
     isuue_subject = driver.find_element_by_id("issue_subject")  # 标题
-    isuue_subject.send_keys(f"[BUG][{xTS}]{module}模块存在{num}条失败项")
+    isuue_subject.send_keys(f"[BUG]({xTS}){module}模块存在{num}条失败项")
     issue_description = driver.find_element_by_id("issue_description")  # 描述
     issue_description.send_keys(f"【模块】：{module}\n【case】：{case}\n【测试工具】：{tool}\n【软件版本】：{DEFAULT_SOFTWARE_VERSION}\n【备注】：{DEFAULT_NOTES}")
     issue_assigned_to_id = Select(driver.find_element_by_id("issue_assigned_to_id"))  # 指派给
@@ -61,6 +61,10 @@ def new_all_bugs(all_info, driver):
             plan = "CTS-ON-GSI"
         build = info["suite_build"]
         tool = plan+build
+        if plan == "CTS-ON-GSI":
+            tool = "CTS"+build
+        if plan == "STS":
+            tool = build
         print("tool:"+tool)
         fails = info["fails"]  # info["fails"]是个列表,其中每个fail元素是字典
         fails_order_by_module = {}  # 按模块归类的列表--每个元素是字典，其module为模块名，v7a及v8a和[instant]归到同一moudule,case为该模块下fail case的集合
