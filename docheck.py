@@ -37,7 +37,7 @@ def get_report(path):
     list_dir = os.listdir(path)
     path_report = []
     for i in list_dir:
-        if i == "cts" or i == "vts" or i == "sts" or i == "gts" or i == "gsi" or i == "cts-instant":
+        if i == "cts" or i == "vts" or i == "sts" or i == "gts" or i == "gsi" or i == "cts-instant" or i == "gts-i":
             sub_list = os.path.join(path, i)
             try:
                 for j in os.listdir(sub_list):
@@ -55,7 +55,7 @@ def get_report(path):
 
 
 def fill_color(workbook_DL):
-    for x in ["CTS", "GTS", "CTS-ON-GSI", "VTS", "STS"]:
+    for x in ["CTS", "GTS", "CTS-ON-GSI", "VTS", "STS", "GTS-Interactive"]:
         i = 4  # 根据模板，从第四行开始填充失败项的颜色
         while True:
             if not workbook_DL[x]["A" + str(i)].value is None:
@@ -296,6 +296,20 @@ class AutoWork:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_STS.append(row_fail)
 
+            if plan == "GTS / gts-interactive":
+                sheet1['H1'] = tool
+                if sheet1["H3"].value is None or int(modules_total) > sheet1["H3"].value:
+                    sheet1["H3"] = int(modules_total)
+                if sheet1["H4"].value is None or int(modules_total) > sheet1["H4"].value:
+                    sheet1["H4"] = case_all_test
+                if self.ifDL.get() == "DL":
+                    sheet_DL_Summary['C11'] = build
+                    sheet_DL_Summary['D11'] = modules_done + "/" + modules_total
+                    sheet_DL_Summary['E11'] = int(case_fail)
+                    for fail in fails:
+                        row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
+                        sheet_DL_GTS.append(row_fail)
+
         for r in data:
             sheet1.append(r)
         workbook.save(filename=path + r"\汇总.xlsx")
@@ -313,7 +327,7 @@ class AutoWork:
         list_dir = os.listdir(path)
         sub = False
         for i in list_dir:
-            if i == "CN" or i == "EU" or i == "RU" or i == "US" or i == "WWAN" or i == "WLAN":
+            if i == "CN" or i == "EU" or i == "RU" or i == "US" or i == "WWAN" or i == "WLAN" or i == "WWAN-TR" or i == "WLAN-TR":
                 sub = True
                 path_sub = os.path.join(path, i)
                 print("path_sub:" + path_sub)
@@ -331,7 +345,7 @@ class AutoWork:
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
         if self.ifRedmine.get() == "Y":
-            oprate_redmine.new_all_bugs(all_info, webdriver.Edge(executable_path='msedgedriver.exe'))
+            oprate_redmine.new_all_bugs(all_info, webdriver.Edge(executable_path='./msedgedriver.exe'))
         print("完成！" + path)
 
     def init_window(self):
