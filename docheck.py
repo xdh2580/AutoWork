@@ -189,6 +189,7 @@ class AutoWork:
         sheet_DL_CTS_ON_GSI = workbook_DL["CTS-ON-GSI"]
         sheet_DL_STS = workbook_DL["STS"]
         sheet_DL_CTSV = workbook_DL["CTS_VERIFIER"]
+        sheet_DL_GTS_I = workbook_DL["GTS-Interactive"]
 
         workbook = load_workbook(filename="case.xlsx")
         sheet1 = workbook["case汇总"]
@@ -308,7 +309,7 @@ class AutoWork:
                     sheet_DL_Summary['E11'] = int(case_fail)
                     for fail in fails:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
-                        sheet_DL_GTS.append(row_fail)
+                        sheet_DL_GTS_I.append(row_fail)
 
         for r in data:
             sheet1.append(r)
@@ -345,7 +346,7 @@ class AutoWork:
             print("dict:" + str(infodict))
         self.write_xl(all_info, path)
         if self.ifRedmine.get() == "Y":
-            oprate_redmine.new_all_bugs(all_info, webdriver.Edge(executable_path='./msedgedriver.exe'))
+            oprate_redmine.new_all_bugs(all_info, webdriver.Edge())
         print("完成！" + path)
 
     def init_window(self):
