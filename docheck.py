@@ -239,7 +239,7 @@ class AutoWork:
                         row_fail = [fail["module"], fail["name"]]  # , fail["detail"]
                         sheet_DL_CTS.append(row_fail)
 
-            if plan == "VTS / cts-on-gsi" or plan == "VTS / cts-on-gsi-retry":
+            if plan == "VTS / cts-on-gsi" or plan == "VTS / cts-on-gsi-retry" or plan == "CTS / cts-on-gsi":
                 # sheet1['D1'] = tool
                 if sheet1["D3"].value is None or int(modules_total) > sheet1["D3"].value:
                     sheet1["D3"] = int(modules_total)
